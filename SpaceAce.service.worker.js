@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1753924870|105856720936';
+const CACHE_VERSION = '1753987555|168539526498';
 /** @type {string} */
 const CACHE_PREFIX = 'SpaceAce-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -17,7 +17,7 @@ const ENSURE_CROSSORIGIN_ISOLATION_HEADERS = true;
 const CACHED_FILES = ["SpaceAce.html","SpaceAce.js","SpaceAce.offline.html","SpaceAce.icon.png","SpaceAce.apple-touch-icon.png","SpaceAce.audio.worklet.js","SpaceAce.audio.position.worklet.js"];
 // Files that we might not want the user to preload, and will only be cached on first load.
 /** @type {string[]} */
-const CACHEABLE_FILES = ["SpaceAce.wasm","SpaceAce.pck"];
+const CACHEABLE_FILES = ["SpaceAce.wasm","SpaceAce.pck","SpaceAce.side.wasm"];
 const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
 
 self.addEventListener('install', (event) => {
