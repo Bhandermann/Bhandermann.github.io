@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1753992903|173887698287';
+const CACHE_VERSION = '1753994517|175502366052';
 /** @type {string} */
 const CACHE_PREFIX = 'SpaceAce-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
