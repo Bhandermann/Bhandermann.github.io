@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1763778054|103848378073';
+const CACHE_VERSION = '1765497260|5712151064';
 /** @type {string} */
 const CACHE_PREFIX = 'Elite Sniper-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
