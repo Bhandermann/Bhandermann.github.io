@@ -1,220 +1,515 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
-		<title>Cube Fight</title>
-		<style>
-html, body, #canvas {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PixelForge — Free Godot Asset Generator</title>
+<meta name="description" content="Generate Godot-ready 2D sprites, tilesets, and icons instantly with procedural pixel-art generation — free, no account, exports straight to .tres." />
 
-body {
-	color: white;
-	background-color: black;
-	overflow: hidden;
-	touch-action: none;
-}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
 
-#canvas {
-	display: block;
-}
+<link rel="stylesheet" href="./base.css" />
+<link rel="stylesheet" href="./style.css" />
 
-#canvas:focus {
-	outline: none;
-}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+</head>
+<body>
+<a href="#main" class="sr-only">Skip to content</a>
 
-#status, #status-splash, #status-progress {
-	position: absolute;
-	left: 0;
-	right: 0;
-}
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" id="logoMark"></span>
+      <span class="brand-name">PixelForge</span>
+      <span class="badge badge-free" id="modeBadge">Free · Procedural</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="themeToggle" aria-label="Switch to light mode" data-theme-toggle></button>
+    </div>
+  </header>
 
-#status, #status-splash {
-	top: 0;
-	bottom: 0;
-}
+  <main id="main" class="main-layout">
+    <!-- Controls panel -->
+    <section class="panel" aria-label="Generation controls">
+      <div class="panel-section">
+        <div class="panel-title">Asset type</div>
+        <div class="tab-group" role="tablist" aria-label="Asset category">
+          <button class="tab-btn" role="tab" data-category="sprite" aria-selected="true">Sprite</button>
+          <button class="tab-btn" role="tab" data-category="tileset" aria-selected="false">Tileset</button>
+          <button class="tab-btn" role="tab" data-category="icon" aria-selected="false">Icon</button>
+        </div>
+      </div>
 
-#status {
-	background-color: #242424;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	visibility: hidden;
-}
+      <div class="panel-section">
+        <div class="panel-title">Generation mode</div>
+        <div class="mode-toggle" role="tablist" aria-label="Generation mode">
+          <button class="mode-btn" role="tab" data-mode="procedural" aria-selected="true" id="btnProcedural"></button>
+          <button class="mode-btn" role="tab" data-mode="ai" aria-selected="false" id="btnAI"></button>
+        </div>
+        <p class="hint" id="modeHint">Instant, algorithmic generation. No API key, no cost, works offline.</p>
+      </div>
 
-#status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
-}
+      <div class="panel-section" id="proceduralControls">
+        <div class="panel-title">Parameters</div>
 
-#status-splash.show-image--false {
-	display: none;
-}
+        <div class="field">
+          <label class="field-label" for="seedInput">Seed <button class="btn-ghost btn-sm" id="randomSeedBtn" type="button" aria-label="Randomize seed"></button></label>
+          <input class="text-input" id="seedInput" type="text" value="godot-hero" data-testid="input-seed" />
+        </div>
 
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
-	object-fit: contain;
-}
+        <div class="field">
+          <label class="field-label" for="sizeSelect">Pixel size</label>
+          <select class="select" id="sizeSelect" data-testid="select-size">
+            <option value="16">16 × 16</option>
+            <option value="32" selected>32 × 32</option>
+            <option value="64">64 × 64</option>
+          </select>
+        </div>
 
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
-}
+        <div class="field" id="frameCountField">
+          <label class="field-label" for="frameCountRange">Frames <span class="val" id="frameCountVal">4</span></label>
+          <input type="range" id="frameCountRange" min="2" max="4" step="1" value="4" data-testid="input-frame-count" />
+        </div>
 
-#status-progress, #status-notice {
-	display: none;
-}
+        <div class="field" id="countField">
+          <label class="field-label" for="countRange">Variations <span class="val" id="countVal">6</span></label>
+          <input type="range" id="countRange" min="3" max="9" step="1" value="6" data-testid="input-count" />
+        </div>
 
-#status-progress {
-	bottom: 10%;
-	width: 50%;
-	margin: 0 auto;
-}
+        <div class="field">
+          <label class="field-label" for="complexityRange">Complexity <span class="val" id="complexityVal">0.5</span></label>
+          <input type="range" id="complexityRange" min="0.1" max="1" step="0.05" value="0.5" data-testid="input-complexity" />
+        </div>
 
-#status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
-	overflow: hidden;
-	padding: 1rem;
-	text-align: center;
-	z-index: 1;
-}
-		</style>
-		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
-<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+        <div class="field">
+          <div class="field-label">Palette</div>
+          <div class="swatch-row" id="paletteRow" role="radiogroup" aria-label="Color palette"></div>
+        </div>
+      </div>
 
-	</head>
-	<body>
-		<canvas id="canvas">
-			Your browser does not support the canvas tag.
-		</canvas>
+      <div class="panel-section" id="aiControls" style="display:none;">
+        <div class="panel-title">AI prompt</div>
+        <div class="field">
+          <label class="field-label" for="aiPrompt">Describe the asset</label>
+          <textarea class="text-input" id="aiPrompt" rows="3" placeholder="e.g. a stoic dwarf blacksmith, pixel art, side view" data-testid="input-ai-prompt"></textarea>
+        </div>
+        <p class="hint">Uses your own OpenAI API key, sent directly from your browser to OpenAI. Never stored or sent anywhere else.</p>
+        <button class="btn btn-secondary btn-sm" id="manageKeyBtn" type="button" style="margin-top:var(--space-3);width:100%;">
+          <span id="keyIcon"></span> <span id="keyStatusLabel">Add API key</span>
+        </button>
+      </div>
 
-		<noscript>
-			Your browser does not support JavaScript.
-		</noscript>
+      <div class="panel-section">
+        <button class="btn btn-primary" id="generateBtn" data-testid="button-generate">
+          <span id="generateIcon"></span>
+          <span id="generateLabel">Generate</span>
+        </button>
+      </div>
+    </section>
 
-		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
-			<progress id="status-progress"></progress>
-			<div id="status-notice"></div>
-		</div>
+    <!-- Preview + export -->
+    <section class="preview-wrap">
+      <div class="panel">
+        <div class="preview-stage checker-bg">
+          <canvas id="previewCanvas" width="256" height="256" aria-label="Asset preview"></canvas>
+        </div>
+        <div class="preview-toolbar">
+          <div style="display:flex;align-items:center;gap:var(--space-2);">
+            <button class="icon-btn" id="playBtn" aria-label="Play animation" style="display:none;"></button>
+            <span class="hint" id="previewLabel">32×32 · seed: godot-hero</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--space-2);">
+            <button class="icon-btn" id="zoomOutBtn" aria-label="Zoom out"></button>
+            <span class="hint" id="zoomLabel">8×</span>
+            <button class="icon-btn" id="zoomInBtn" aria-label="Zoom in"></button>
+          </div>
+        </div>
+        <div class="frame-strip" id="frameStrip" role="list" aria-label="Generated frames"></div>
+      </div>
 
-		<script src="index.js"></script>
-		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":676004,"index.wasm":36160334},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
-const GODOT_THREADS_ENABLED = false;
-const engine = new Engine(GODOT_CONFIG);
+      <div class="panel panel-section">
+        <div class="panel-title">Export</div>
+        <div class="export-grid">
+          <button class="export-card" id="exportSheetBtn" data-testid="button-export-sheet">
+            <span class="export-icon" data-icon="sheet"></span>
+            <span>PNG Sprite Sheet</span>
+            <small>All frames, one file</small>
+          </button>
+          <button class="export-card" id="exportFramesBtn" data-testid="button-export-frames">
+            <span class="export-icon" data-icon="frames"></span>
+            <span>Individual Frames</span>
+            <small>Numbered PNGs (.zip)</small>
+          </button>
+          <button class="export-card" id="exportGodotBtn" data-testid="button-export-godot">
+            <span class="export-icon" data-icon="godot"></span>
+            <span>Godot Bundle</span>
+            <small>Sheet + .tres (.zip)</small>
+          </button>
+        </div>
+      </div>
 
+      <div class="panel panel-section">
+        <div class="panel-title">Session gallery</div>
+        <div class="gallery-grid" id="galleryGrid">
+          <p class="gallery-empty" id="galleryEmpty">Generated assets will appear here for this session.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer-note">
+    PixelForge runs entirely in your browser — no accounts, no uploads. Procedural generation is free forever.
+  </footer>
+</div>
+
+<div class="modal-overlay" id="keyModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
+  <div class="modal">
+    <h2 class="modal-title" id="keyModalTitle">OpenAI API key</h2>
+    <p class="modal-desc">Paste your own key to enable AI-assisted generation. It's kept only in memory for this browser tab — never saved, never sent to any server but OpenAI's.</p>
+    <div class="field">
+      <label class="field-label" for="apiKeyInput">API key</label>
+      <input class="text-input" id="apiKeyInput" type="password" placeholder="sk-..." data-testid="input-api-key" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancelKeyBtn" type="button">Cancel</button>
+      <button class="btn btn-primary" id="saveKeyBtn" type="button" data-testid="button-save-key">Save key</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="./js/app.js"></script>
+<script data-pplx-inline-edit>
 (function () {
-	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
-	const statusNotice = document.getElementById('status-notice');
+  if (window === window.top) return;
 
-	let initializing = true;
-	let statusMode = '';
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
 
-	function setStatusMode(mode) {
-		if (statusMode === mode || !initializing) {
-			return;
-		}
-		if (mode === 'hidden') {
-			statusOverlay.remove();
-			initializing = false;
-			return;
-		}
-		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
-		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
-		statusMode = mode;
-	}
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
 
-	function setStatusNotice(text) {
-		while (statusNotice.lastChild) {
-			statusNotice.removeChild(statusNotice.lastChild);
-		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
-			statusNotice.appendChild(document.createTextNode(line));
-			statusNotice.appendChild(document.createElement('br'));
-		});
-	}
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
 
-	function displayFailureNotice(err) {
-		console.error(err);
-		if (err instanceof Error) {
-			setStatusNotice(err.message);
-		} else if (typeof err === 'string') {
-			setStatusNotice(err);
-		} else {
-			setStatusNotice('An unknown error occurred.');
-		}
-		setStatusMode('notice');
-		initializing = false;
-	}
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
 
-	const missing = Engine.getMissingFeatures({
-		threads: GODOT_THREADS_ENABLED,
-	});
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
 
-	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
-			}
-			// There's a chance that installing the service worker would fix the issue
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				// Reload if there was no error.
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			// Display the message as usual
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
-	} else {
-		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
-			setStatusMode('hidden');
-		}, displayFailureNotice);
-	}
-}());
-		</script>
-	</body>
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+
+</script></body>
 </html>
-
